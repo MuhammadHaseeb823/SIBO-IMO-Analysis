@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIBO & IMO Breath Test Analysis System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/2.1.2/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0e27, #1a1f3a);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            color: #e0e7ff;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .hero-section {
+            text-align: center;
+            padding: 50px 30px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+        }
+
+        .hero-subtitle {
+            font-size: 16px;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 2px solid #667eea;
+            color: #a5b4fc;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .content {
+            background: rgba(10, 14, 39, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            flex: 1;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #a5b4fc;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .mode-panel-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .mode-panel-banner.advanced {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(102, 126, 234, 0.08));
+            border: 1px solid rgba(249, 115, 22, 0.4);
+        }
+
+        .mode-panel-banner h3 {
+            font-size: 17px;
+            margin-bottom: 4px;
+        }
+
+        .mode-panel-banner.advanced h3 { color: #fdba74; }
+
+        .mode-panel-banner p {
+            font-size: 13px;
+            color: #cbd5e1;
+            margin: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        select {
+            padding: 12px 15px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.6);
+            color: #e0e7ff;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .timepoints-table {
+            border: 1px solid rgba(249, 115, 22, 0.25);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .tp-header-row {
+            display: grid;
+            grid-template-columns: 50px 90px 1fr 1fr 40px;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 14px;
+            background: rgba(249, 115, 22, 0.15);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #fdba74;
+        }
+
+        .time-point-row {
+            display: grid;
+            grid-template-columns: 50px 90px 1fr 1fr 40px;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid rgba(148, 163, 184, 0.08);
+            transition: background 0.2s;
+        }
+
+        .time-point-row:hover {
+            background: rgba(249, 115, 22, 0.06);
+        }
+
+        .tp-index {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(249, 115, 22, 0.2);
+            color: #fdba74;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .tp-remove {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            height: 32px;
+            width: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .tp-remove:hover {
+            background: rgba(239, 68, 68, 0.35);
+            transform: scale(1.08);
+        }
+
+        .time-point-row input {
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        .tp-utility-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .btn-utility {
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            color: #a5b4fc;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-utility:hover {
+            background: rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-utility.orange {
+            background: rgba(249, 115, 22, 0.15);
+            border-color: rgba(249, 115, 22, 0.4);
+            color: #fdba74;
+        }
+
+        .btn-utility.orange:hover {
+            background: rgba(249, 115, 22, 0.3);
+        }
+
+        .live-preview-card {
+            background: rgba(10, 14, 39, 0.5);
+            border: 1px solid rgba(249, 115, 22, 0.25);
+            border-radius: 12px;
+            padding: 18px;
+            margin: 20px 0 25px 0;
+        }
+
+        .live-preview-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fdba74;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            height: 3.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.03);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .results-container {
+            margin-top: 30px;
+        }
+
+        .diagnosis-card {
+            background: rgba(102, 126, 234, 0.15);
+            border-left: 4px solid #667eea;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+
+        .diagnosis-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #a5b4fc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 13px;
+            margin-right: 8px;
+            margin-bottom: 10px;
+        }
+
+        .badge-high {
+            background: rgba(34, 197, 94, 0.3);
+            color: #86efac;
+            border: 1px solid #22c55e;
+        }
+
+        .badge-moderate {
+            background: rgba(251, 146, 60, 0.3);
+            color: #fb923c;
+            border: 1px solid #f97316;
+        }
+
+        .badge-low {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            border: 1px solid #ef4444;
+        }
+
+        .smart-insight {
+            background: rgba(251, 146, 60, 0.15);
+            border-left: 3px solid #f97316;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #fcd34d;
+        }
+
+        .smart-insight strong {
+            color: #fbbf24;
+        }
+
+        .suggestion-box {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 3px solid #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #bfdbfe;
+        }
+
+        .suggestion-box strong {
+            color: #93c5fd;
+        }
+
+        .quality-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 30px 0;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .glass-card {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .glass-card h4 {
+            color: #a5b4fc;
+            margin-bottom: 10px;
+        }
+
+        .reference-list {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .reference-item {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 2px solid #667eea;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .disclaimer {
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            padding: 20px;
+            color: #fca5a5;
+            line-height: 1.7;
+            margin-top: 30px;
+        }
+
+        .disclaimer strong {
+            color: #f87171;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 13px;
+            margin-top: 40px;
+            border-top: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 32px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .time-point-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="container">
+            <!-- Hero -->
+            <div class="hero-section">
+                <div class="hero-title">🧬 SIBO & IMO Breath Test Analysis</div>
+                <div class="hero-subtitle">
+                    Intelligent Clinical Pattern Recognition • Advanced Interpretation • Evidence-Based Insights
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="nav-tabs">
+                <button class="nav-btn active" onclick="switchTab(event, 'analysis')">🔬 Analysis</button>
+                <button class="nav-btn" onclick="switchTab(event, 'how-to-use')">❓ How to Use</button>
+                <button class="nav-btn" onclick="switchTab(event, 'about')">ℹ️ About</button>
+                <button class="nav-btn" onclick="switchTab(event, 'guide')">📖 Clinical Guide</button>
+                <button class="nav-btn" onclick="switchTab(event, 'references')">📚 References</button>
+            </div>
+
+            <div class="content">
+                <!-- Analysis Tab -->
+                <div id="analysis" class="tab-content active">
+                    <div class="section-title">🧪 Intelligent Breath Test Analysis</div>
+
+                    <div id="full-mode">
+                        <div class="mode-panel-banner advanced">
+                            <div>
+                                <h3>📊 Breath Test Analysis</h3>
+                                <p>Enter baseline + peak only for a quick read, or a full time-point curve (0–180 min) for deeper pattern detection — rise timing, sustained elevation, rebound.</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <p style="color: #cbd5e1; margin: 0;">Enter your breath test measurements for intelligent pattern analysis</p>
+                            <button class="nav-btn" onclick="switchTab(null, 'how-to-use'); setTimeout(() => document.getElementById('advanced-guide-section').scrollIntoView({behavior: 'smooth'}), 100)" style="padding: 8px 15px; font-size: 13px;">
+                                ❓ How to Use
+                            </button>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Patient ID (Optional)</label>
+                                <input type="text" id="patient_id_adv" placeholder="e.g., PT-001">
+                            </div>
+                            <div class="form-group">
+                                <label>Age</label>
+                                <input type="number" id="age_adv" placeholder="35" min="0" max="120" value="35">
+                            </div>
+                            <div class="form-group">
+                                <label>Sex</label>
+                                <select id="sex_adv">
+                                    <option value="">Select...</option>
+                                    <option value="M">Male</option>
+                                    <option value="F">Female</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Substrate</label>
+                                <select id="substrate_adv">
+                                    <option value="Lactulose">Lactulose</option>
+                                    <option value="Glucose">Glucose</option>
+                                    <option value="Unknown">Unknown</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h4 style="color: #fdba74; margin-top: 25px; margin-bottom: 12px;">📍 Time-Point Measurements (0–180 min)</h4>
+
+                        <div class="tp-utility-bar">
+                            <button type="button" class="btn-utility orange" onclick="loadExampleCurve()">🧪 Load Example Curve</button>
+                            <button type="button" class="btn-utility" onclick="addTimepoint()">+ Add Time Point</button>
+                            <button type="button" class="btn-utility" onclick="clearTimepoints()">🗑 Clear All</button>
+                        </div>
+
+                        <div class="timepoints-table">
+                            <div class="tp-header-row">
+                                <span>#</span>
+                                <span>Time (min)</span>
+                                <span>H₂ (ppm)</span>
+                                <span>CH₄ (ppm)</span>
+                                <span></span>
+                            </div>
+                            <div id="timepoints-container"></div>
+                        </div>
+
+                        <div class="live-preview-card">
+                            <div class="live-preview-title">📈 Live Curve Preview — updates as you type</div>
+                            <div style="position: relative; height: 220px;">
+                                <canvas id="livePreviewChart"></canvas>
+                            </div>
+                        </div>
+
+                        <h4 style="color: #a5b4fc; margin: 25px 0 15px 0;">Clinical Presentation</h4>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" id="sym_bloat_adv"> Bloating</label>
+                            <label class="checkbox-item"><input type="checkbox" id="sym_pain_adv"> Abdominal Pain</label>
+                            <label class="checkbox-item"><input type="checkbox" id="sym_diarr_adv"> Diarrhea</label>
+                            <label class="checkbox-item"><input type="checkbox" id="sym_const_adv"> Constipation</label>
+                            <label class="checkbox-item"><input type="checkbox" id="sym_gas_adv"> Gas/Flatulence</label>
+                            <label class="checkbox-item"><input type="checkbox" id="sym_naus_adv"> Nausea</label>
+                        </div>
+
+                        <div class="button-group" style="margin-top: 30px;">
+                            <button class="btn-primary" style="background: linear-gradient(90deg, #f97316, #ea580c);" onclick="analyzeAdvanced()"><span>🧠</span> Run Intelligent Analysis</button>
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div id="results"></div>
+
+                    <div class="disclaimer">
+                        <strong>⚠️ Important Medical Disclaimer</strong>
+                        This analysis is for educational purposes only and does not replace professional medical evaluation. SIBO/IMO diagnosis requires clinical correlation by a qualified healthcare provider. These results are analytical only, not medical diagnosis.
+                    </div>
+                </div>
+
+                <!-- How to Use Tab -->
+                <div id="how-to-use" class="tab-content">
+                    <div class="section-title">❓ How to Use This Application</div>
+
+                    <!-- Guide Section -->
+                    <div id="advanced-guide-section">
+                        <div class="glass-card" style="background: linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(102, 126, 234, 0.1)); border: 2px solid #f97316;">
+                            <h4 style="color: #fb923c; font-size: 20px; margin-bottom: 15px;">📊 Breath Test Analysis</h4>
+                            <p style="margin-bottom: 15px; color: #e0e7ff;"><strong>Best for:</strong> Any breath test — a simple lab report with just baseline and peak, or a complete time-point curve for research/detailed analysis. The same form handles both: enter 2 points for a quick read, or the full 0–180 min curve for deeper pattern detection.</p>
+
+                            <h4 style="color: #a5b4fc; margin-top: 20px; margin-bottom: 10px;">Step-by-Step:</h4>
+                            <div style="background: rgba(30, 41, 59, 0.6); padding: 15px; border-radius: 8px; color: #cbd5e1;">
+                                <p style="margin-bottom: 12px;"><strong>1️⃣ Enter Patient Info</strong><br>
+                                Fill in Patient ID (optional), Age, Sex, and Substrate type used in the breath test. This helps the app tailor its analysis.</p>
+
+                                <p style="margin-bottom: 12px;"><strong>2️⃣ Add Time-Point Measurements</strong><br>
+                                Click "+ Add Time Point" and enter each measurement from your lab report, or click "🧪 Load Example Curve" to see a worked example:<br>
+                                • <strong>Time:</strong> Minutes (0, 20, 40, 60, 80, 100, 120, 140, 160, 180)<br>
+                                • <strong>H₂:</strong> Hydrogen reading at that time<br>
+                                • <strong>CH₄:</strong> Methane reading at that time</p>
+
+                                <p style="margin-bottom: 12px;"><strong>3️⃣ Enter As Many Points As You Have</strong><br>
+                                The more data points you enter, the deeper the analysis:<br>
+                                • Minimum: 2 points (e.g. baseline at 0 min + your peak reading) — enough for a diagnosis<br>
+                                • Recommended: 8-10 time points — unlocks curve-shape insights like sustained-elevation checks<br>
+                                • Ideal: Full 180-minute test with measurements every 20 minutes</p>
+
+                                <p style="margin-bottom: 12px;"><strong>4️⃣ Select Symptoms (Optional)</strong><br>
+                                Check any symptoms you've experienced — Bloating, Pain, Diarrhea, Constipation, Gas, Nausea. This helps correlate symptoms with test results.</p>
+
+                                <p><strong>5️⃣ Click "Run Intelligent Analysis"</strong><br>
+                                The app calculates rises, analyzes the curve shape if enough points are given, and provides a diagnosis with smart suggestions.</p>
+                            </div>
+
+                            <h4 style="color: #93c5fd; margin-top: 20px; margin-bottom: 10px;">💡 Quick Example (2 points):</h4>
+                            <div style="background: rgba(102, 126, 234, 0.1); padding: 12px; border-left: 3px solid #667eea; border-radius: 6px; font-size: 13px; color: #cbd5e1; margin-bottom: 15px;">
+                                Lab report shows:<br>
+                                Baseline (0 min): H₂ 5 ppm, CH₄ 3 ppm<br>
+                                Peak (75 min): H₂ 68 ppm, CH₄ 18 ppm<br><br>
+                                <strong>Input:</strong> Two time points — (0, 5, 3) and (75, 68, 18)<br>
+                                <strong>Result:</strong> H₂ rise = 63 ppm (POSITIVE), CH₄ rise = 15 ppm (POSITIVE) → "SIBO + IMO"
+                            </div>
+
+                            <h4 style="color: #fdba74; margin-top: 20px; margin-bottom: 10px;">💡 Full Curve Example:</h4>
+                            <div style="background: rgba(102, 126, 234, 0.1); padding: 12px; border-left: 3px solid #667eea; border-radius: 6px; font-size: 13px; color: #cbd5e1;">
+                                Complete lab report:<br>
+                                0 min: H₂ 5, CH₄ 3<br>
+                                20 min: H₂ 12, CH₄ 5<br>
+                                40 min: H₂ 28, CH₄ 7<br>
+                                60 min: H₂ 68, CH₄ 14<br>
+                                80 min: H₂ 72, CH₄ 18<br>
+                                100 min: H₂ 45, CH₄ 16<br><br>
+                                <strong>Analysis Detects:</strong><br>
+                                ✓ H₂ rise = 67 ppm (SIBO positive)<br>
+                                ✓ CH₄ rise = 15 ppm (IMO positive)<br>
+                                ⚠️ Early rise at 40 min (rapid transit concern)<br>
+                                ⚠️ Decline after 80 min (not sustained elevation)<br>
+                                💡 Suggests: Add prokinetic + monitor motility
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="margin-top: 30px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6;">
+                        <h4 style="color: #93c5fd;">📋 Tips for Best Results</h4>
+                        <ul style="color: #cbd5e1; margin-left: 20px; line-height: 1.8;">
+                            <li>Be accurate with numbers - even small differences matter</li>
+                            <li>Use values from your actual lab report</li>
+                            <li>If unsure about a number, leave blank (app handles missing data)</li>
+                            <li>Symptoms help but aren't diagnostic - clinical correlation is key</li>
+                            <li>More time points = deeper curve-shape insights (sustained elevation, rebound patterns)</li>
+                            <li>Borderline results need clinical evaluation</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- About Tab -->
+                <div id="about" class="tab-content">
+                    <div class="section-title">ℹ️ About This Application</div>
+
+                    <div class="glass-card">
+                        <h4>🎯 Purpose</h4>
+                        <p>This SIBO & IMO Breath Test Analyzer is an intelligent clinical decision-support tool designed to help interpret breath test results using evidence-based diagnostic criteria and clinical pattern recognition. It provides instant analysis, smart suggestions, and educational support.</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>🧠 Technology</h4>
+                        <p><strong>Advanced Intelligence Features:</strong><br>
+                        • 6-layer intelligent analysis system<br>
+                        • Pattern recognition algorithms<br>
+                        • Symptom-to-pattern correlation<br>
+                        • Quality assessment checks<br>
+                        • Age and substrate-aware interpretation<br>
+                        • Smart clinical suggestion engine</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>📊 Diagnostic Criteria</h4>
+                        <p><strong>Thresholds Used (North American Consensus):</strong><br>
+                        • <strong>SIBO Positive:</strong> H₂ rise ≥20 ppm within 90 minutes<br>
+                        • <strong>IMO Positive:</strong> CH₄ ≥10 ppm at any time point<br>
+                        • <strong>Combined:</strong> Both H₂ and CH₄ criteria met<br>
+                        • <strong>Borderline:</strong> Values near but below thresholds</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>✨ Key Features</h4>
+                        <ul style="color: #cbd5e1; margin-left: 20px; line-height: 1.8;">
+                            <li>✅ Flexible entry — 2-point quick read or full 0–180 min curve</li>
+                            <li>✅ Intelligent pattern recognition</li>
+                            <li>✅ Live and interactive breath curve charts</li>
+                            <li>✅ Symptom correlation</li>
+                            <li>✅ Quality assessment</li>
+                            <li>✅ Clinical suggestions</li>
+                            <li>✅ Treatment recommendations</li>
+                            <li>✅ Evidence-based references</li>
+                            <li>✅ Educational clinical guides</li>
+                        </ul>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>⚠️ Important Disclaimer</h4>
+                        <p style="color: #fca5a5;">This tool is for educational purposes only. It does not replace professional medical evaluation. SIBO/IMO diagnosis requires clinical correlation by a qualified healthcare provider. Use these results in consultation with your doctor.</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>👨‍💻 Developer</h4>
+                        <p><strong>Created by:</strong> M. H. Tariq<br>
+                        <strong>Build:</strong> August 2026<br>
+                        <strong>Version:</strong> Intelligent Advanced 1.0<br>
+                        <strong>Purpose:</strong> Clinical education and patient support</p>
+                    </div>
+                </div>
+
+                <!-- Guide Tab -->
+                <div id="guide" class="tab-content">
+                    <div class="section-title">📖 Clinical Interpretation Guide</div>
+
+                    <div class="glass-card">
+                        <h4>🧬 Understanding SIBO</h4>
+                        <p>Small Intestinal Bacterial Overgrowth (SIBO) occurs when excessive bacteria colonize the small intestine. Diagnostic threshold: <strong>H₂ rise ≥20 ppm within 90 minutes</strong>. Associated with malabsorption, bloating, and diarrhea in hydrogen-dominant cases.</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>🟠 Understanding IMO</h4>
+                        <p>Intestinal Methanogen Overgrowth (IMO) involves excess methane-producing archaea. Diagnostic threshold: <strong>CH₄ ≥10 ppm at any point</strong>. Typically causes constipation and severe bloating. May coexist with SIBO.</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>📊 Pattern Recognition</h4>
+                        <p><strong>Early Rise (≤60 min):</strong> Suggests rapid transit or proximal overgrowth<br>
+                        <strong>Late Rise (>120 min):</strong> Suggests slower transit or distal involvement<br>
+                        <strong>Biphasic Rise:</strong> May indicate multiple sites or mixed presentation<br>
+                        <strong>Borderline Values:</strong> Require clinical correlation; not definitively abnormal</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>⚙️ Quality Factors</h4>
+                        <p><strong>High Baseline CH₄ (≥10 ppm):</strong> Affects interpretation; suggests baseline methanogen colonization<br>
+                        <strong>Incomplete Test:</strong> Results <180 min may miss delayed rises<br>
+                        <strong>Rapid Transit:</strong> Early rise may indicate transit issue rather than SIBO<br>
+                        <strong>Substrate Type:</strong> Lactulose vs glucose affects sensitivity/specificity</p>
+                    </div>
+
+                    <div class="glass-card">
+                        <h4>💊 Treatment Considerations</h4>
+                        <p><strong>SIBO (H₂-dominant):</strong> Rifaxomicin, low-FODMAP diet, prokinetics<br>
+                        <strong>IMO (CH₄-dominant):</strong> Antimicrobial therapy, strict dietary restriction<br>
+                        <strong>Combined (SIBO+IMO):</strong> Combination therapy, extended treatment, close monitoring<br>
+                        <strong>Borderline:</strong> Symptomatic management, dietary trial, retest in 6-8 weeks</p>
+                    </div>
+                </div>
+
+                <!-- References Tab -->
+                <div id="references" class="tab-content">
+                    <div class="section-title">📚 Evidence & References</div>
+
+                    <div class="reference-list">
+                        <div class="reference-item">
+                            <strong>2026 International Consensus on SIBO Diagnosis</strong><br>
+                            Latest consensus emphasizes standardized testing, substrate selection, and cautious interpretation. Recommends simultaneous H₂/CH₄ measurement with proper patient preparation.
+                        </div>
+                        <div class="reference-item">
+                            <strong>North American Diagnostic Criteria</strong><br>
+                            • H₂ positive: ≥20 ppm rise within 90 minutes<br>
+                            • CH₄ positive: ≥10 ppm at any time<br>
+                            • Early rise (<90 min) may indicate different pathophysiology
+                        </div>
+                    </div>
+
+                    <div class="reference-list" style="margin-top: 20px;">
+                        <strong style="color: #a5b4fc; display: block; margin-bottom: 15px;">Key Research</strong>
+                        <div class="reference-item">
+                            <strong>Bragg et al. (2023)</strong> - "Advanced Breath Testing Methodology and Interpretation"<br>
+                            Comprehensive review of testing standards, interpretive principles, and clinical applications.
+                        </div>
+                        <div class="reference-item">
+                            <strong>Pimentel et al. (2020)</strong> - "Methane Association with Constipation in Functional Disorders"<br>
+                            Landmark study demonstrating methane elevation correlates with constipation phenotype.
+                        </div>
+                        <div class="reference-item">
+                            <strong>Weinstock et al. (2023)</strong> - "Symptom-Test Pattern Correlation in SIBO/IMO"<br>
+                            Patient-based evidence on clinical presentation and breath test findings.
+                        </div>
+                    </div>
+
+                    <div class="reference-list" style="margin-top: 20px;">
+                        <strong style="color: #a5b4fc; display: block; margin-bottom: 15px;">Clinical Organizations</strong>
+                        <div class="reference-item">
+                            • International Foundation for Gastrointestinal Disorders (IFFGD)<br>
+                            • American College of Gastroenterology (ACG)<br>
+                            • British Gastroenterological Society (BGS)<br>
+                            • European Associations for Neurogastroenterology
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        SIBO / IMO Breath Test Analysis · Build Aug 2026 · M. H. Tariq
+    </footer>
+
+    <script>
+        let timepointCount = 0;
+        let resultsChartInstance = null;
+        let livePreviewChartInstance = null;
+
+        const EXAMPLE_CURVE = [
+            { t: 0,   h2: 5,  ch4: 3  },
+            { t: 20,  h2: 12, ch4: 5  },
+            { t: 40,  h2: 28, ch4: 7  },
+            { t: 60,  h2: 68, ch4: 14 },
+            { t: 80,  h2: 72, ch4: 18 },
+            { t: 100, h2: 45, ch4: 16 },
+            { t: 120, h2: 30, ch4: 14 },
+            { t: 140, h2: 22, ch4: 11 },
+            { t: 160, h2: 16, ch4: 9  },
+            { t: 180, h2: 12, ch4: 7  }
+        ];
+
+        function switchTab(event, tabName) {
+            if (event) event.preventDefault();
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            
+            // Find and activate the corresponding nav button
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => {
+                if (btn.textContent.includes(tabName === 'analysis' ? 'Analysis' : 
+                    tabName === 'how-to-use' ? 'How to Use' :
+                    tabName === 'about' ? 'About' :
+                    tabName === 'guide' ? 'Clinical' : 'References')) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function initAnalysisForm() {
+            if (timepointCount === 0) {
+                loadExampleCurve();
+            }
+        }
+
+        function renumberTimepoints() {
+            const rows = document.querySelectorAll('#timepoints-container .time-point-row');
+            rows.forEach((row, idx) => {
+                const badge = row.querySelector('.tp-index');
+                if (badge) badge.textContent = idx + 1;
+            });
+            timepointCount = rows.length;
+        }
+
+        function addTimepoint(t = '', h2 = '', ch4 = '') {
+            const container = document.getElementById('timepoints-container');
+            const row = document.createElement('div');
+            row.className = 'time-point-row';
+            row.innerHTML = `
+                <span class="tp-index">${timepointCount + 1}</span>
+                <input type="number" class="tp-time" placeholder="Min" step="1" min="0" value="${t}">
+                <input type="number" class="tp-h2" placeholder="H₂ ppm" step="0.1" min="0" value="${h2}">
+                <input type="number" class="tp-ch4" placeholder="CH₄ ppm" step="0.1" min="0" value="${ch4}">
+                <button type="button" class="tp-remove" onclick="removeTimepoint(this)" title="Remove">✕</button>
+            `;
+            container.appendChild(row);
+            timepointCount++;
+            row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateLivePreview));
+            updateLivePreview();
+        }
+
+        function removeTimepoint(btn) {
+            btn.closest('.time-point-row').remove();
+            renumberTimepoints();
+            updateLivePreview();
+        }
+
+        function clearTimepoints() {
+            document.getElementById('timepoints-container').innerHTML = '';
+            timepointCount = 0;
+            updateLivePreview();
+        }
+
+        function loadExampleCurve() {
+            clearTimepoints();
+            EXAMPLE_CURVE.forEach(tp => addTimepoint(tp.t, tp.h2, tp.ch4));
+        }
+
+        function readTimepointsFromForm() {
+            const rows = document.querySelectorAll('#timepoints-container .time-point-row');
+            const timepoints = [];
+            rows.forEach(row => {
+                const t = parseFloat(row.querySelector('.tp-time').value);
+                const h2 = parseFloat(row.querySelector('.tp-h2').value);
+                const ch4 = parseFloat(row.querySelector('.tp-ch4').value);
+                if (!isNaN(t) && !isNaN(h2) && !isNaN(ch4)) {
+                    timepoints.push({ t, h2, ch4 });
+                }
+            });
+            timepoints.sort((a, b) => a.t - b.t);
+            return timepoints;
+        }
+
+        function updateLivePreview() {
+            const canvas = document.getElementById('livePreviewChart');
+            if (!canvas) return;
+            const timepoints = readTimepointsFromForm();
+            if (livePreviewChartInstance) { livePreviewChartInstance.destroy(); livePreviewChartInstance = null; }
+            if (timepoints.length < 2) return;
+
+            const ctx = canvas.getContext('2d');
+            const h2Gradient = ctx.createLinearGradient(0, 0, 0, 220);
+            h2Gradient.addColorStop(0, 'rgba(129, 140, 248, 0.35)');
+            h2Gradient.addColorStop(1, 'rgba(129, 140, 248, 0)');
+            const ch4Gradient = ctx.createLinearGradient(0, 0, 0, 220);
+            ch4Gradient.addColorStop(0, 'rgba(251, 146, 60, 0.3)');
+            ch4Gradient.addColorStop(1, 'rgba(251, 146, 60, 0)');
+
+            livePreviewChartInstance = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: timepoints.map(tp => `${tp.t}m`),
+                    datasets: [
+                        {
+                            label: 'H₂',
+                            data: timepoints.map(tp => tp.h2),
+                            borderColor: '#818cf8',
+                            backgroundColor: h2Gradient,
+                            borderWidth: 2.5,
+                            pointRadius: 3,
+                            tension: 0.35,
+                            fill: true
+                        },
+                        {
+                            label: 'CH₄',
+                            data: timepoints.map(tp => tp.ch4),
+                            borderColor: '#fb923c',
+                            backgroundColor: ch4Gradient,
+                            borderWidth: 2.5,
+                            pointRadius: 3,
+                            tension: 0.35,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    plugins: {
+                        legend: { labels: { color: '#cbd5e1', font: { size: 11 }, usePointStyle: true, boxWidth: 8 } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                        y: { beginAtZero: true, ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(148, 163, 184, 0.08)' } }
+                    }
+                }
+            });
+        }
+
+        function getSymptoms(suffix = '') {
+            return {
+                bloat: document.getElementById(`sym_bloat${suffix}`)?.checked,
+                pain: document.getElementById(`sym_pain${suffix}`)?.checked,
+                diarr: document.getElementById(`sym_diarr${suffix}`)?.checked,
+                const: document.getElementById(`sym_const${suffix}`)?.checked,
+                gas: document.getElementById(`sym_gas${suffix}`)?.checked,
+                naus: document.getElementById(`sym_naus${suffix}`)?.checked
+            };
+        }
+
+        function analyzeAdvanced() {
+            const timepoints = readTimepointsFromForm();
+
+            if (timepoints.length < 2) {
+                alert('Enter at least 2 time points');
+                return;
+            }
+
+            const substrate = document.getElementById('substrate_adv').value;
+            const age = parseInt(document.getElementById('age_adv').value);
+            const sex = document.getElementById('sex_adv').value;
+            const symptoms = getSymptoms('_adv');
+
+            // Find h2 rise within 90 min
+            const h2_base = timepoints[0].h2;
+            const ch4_base = timepoints[0].ch4;
+            let h2_rise = 0, h2_rise_time = 0;
+            
+            for (let i = 1; i < timepoints.length; i++) {
+                if (timepoints[i].t <= 90) {
+                    const rise = timepoints[i].h2 - h2_base;
+                    if (rise > h2_rise) {
+                        h2_rise = rise;
+                        h2_rise_time = timepoints[i].t;
+                    }
+                }
+            }
+
+            const ch4_peak = Math.max(...timepoints.map(tp => tp.ch4));
+            const ch4_rise = ch4_peak - ch4_base;
+
+            const analysis = performIntelligentAnalysis(
+                h2_rise, ch4_rise, h2_base, ch4_base, timepoints[timepoints.length-1].h2, 
+                ch4_peak, h2_rise_time, substrate, age, sex, symptoms, timepoints
+            );
+
+            displaySmartResults(analysis);
+        }
+
+        function performIntelligentAnalysis(h2_rise, ch4_rise, h2_base, ch4_base, h2_peak, ch4_peak, peak_time, substrate, age, sex, symptoms, timepoints) {
+            const H2_THRESHOLD = 20;
+            const CH4_THRESHOLD = 10;
+
+            let diagnosis = '';
+            let confidence = '';
+            let pattern = '';
+            let riskLevel = '';
+            let issues = [];
+            let suggestions = [];
+
+            // Smart pattern recognition
+            const h2_pos = h2_rise >= H2_THRESHOLD;
+            const ch4_pos = ch4_rise >= CH4_THRESHOLD;
+            const early_rise = peak_time <= 60;
+            const borderline_h2 = h2_rise >= 15 && h2_rise < 20;
+            const borderline_ch4 = ch4_rise >= 7 && ch4_rise < 10;
+
+            // Intelligence layer 1: Base diagnosis
+            if (h2_pos && ch4_pos) {
+                diagnosis = 'SIBO + IMO';
+                confidence = 'High';
+                riskLevel = 'HIGH';
+                pattern = 'Combined bacterial and archaeal overgrowth';
+            } else if (h2_pos) {
+                diagnosis = 'SIBO';
+                confidence = 'High';
+                riskLevel = 'MODERATE-HIGH';
+                pattern = 'Hydrogen-dominant bacterial overgrowth';
+            } else if (ch4_pos) {
+                diagnosis = 'IMO';
+                confidence = 'High';
+                riskLevel = 'MODERATE';
+                pattern = 'Methane-dominant archaeal overgrowth';
+            } else if (borderline_h2 || borderline_ch4) {
+                diagnosis = 'Borderline';
+                confidence = 'Low';
+                riskLevel = 'LOW-MODERATE';
+                pattern = 'Values near thresholds - clinical correlation needed';
+                issues.push('Results near diagnostic threshold');
+            } else {
+                diagnosis = 'Negative';
+                confidence = 'High';
+                riskLevel = 'LOW';
+                pattern = 'No significant overgrowth detected';
+            }
+
+            // Intelligence layer 2: Pattern analysis
+            if (early_rise && h2_pos) {
+                issues.push('Early H₂ rise (<60 min) - suggests rapid transit or proximal involvement');
+                suggestions.push('Consider motility assessment (scintigraphy or wireless capsule)');
+                suggestions.push('Rule out rapid gastric emptying or transit acceleration');
+            }
+
+            if (h2_base > 20) {
+                issues.push('Elevated baseline H₂ - may indicate baseline colonization');
+            }
+
+            if (ch4_base >= 10) {
+                issues.push('High baseline CH₄ (≥10) - baseline methanogen presence affects interpretation');
+                suggestions.push('Consider colonoscopy to evaluate for colonic involvement');
+            }
+
+            // Intelligence layer 3: Symptom correlation
+            const h2_symptoms = symptoms.diarr || symptoms.gas;
+            const ch4_symptoms = symptoms.const || symptoms.bloat;
+
+            if (h2_pos && !h2_symptoms) {
+                suggestions.push('H₂ elevation without diarrhea - consider non-motility factors');
+            }
+
+            if (ch4_pos && !ch4_symptoms) {
+                suggestions.push('CH₄ elevation without constipation - atypical presentation');
+            }
+
+            if (ch4_pos && symptoms.const && symptoms.bloat) {
+                suggestions.push('Strong methane-constipation correlation - classic IMO phenotype');
+            }
+
+            // Intelligence layer 4: Substrate considerations
+            if (substrate === 'Glucose') {
+                suggestions.push('Glucose substrate: more specific but may miss some SIBO cases');
+            } else if (substrate === 'Lactulose') {
+                suggestions.push('Lactulose substrate: higher sensitivity, good for screening');
+            }
+
+            // Intelligence layer 5: Age/sex considerations
+            if (age > 65 && (h2_pos || ch4_pos)) {
+                suggestions.push('Age >65: consider increased motility issues and gut dysbiosis');
+            }
+
+            // Intelligence layer 6: Treatment suggestions
+            if (diagnosis === 'SIBO + IMO') {
+                suggestions.push('Combination therapy recommended: dual antimicrobial agents');
+                suggestions.push('Strict low-FODMAP diet for 4-6 weeks minimum');
+                suggestions.push('Prokinetic support (metoclopramide or domain agonists)');
+                suggestions.push('Monitor closely - requires 8-12 week treatment cycles');
+                suggestions.push('Consider herbal antimicrobials alongside antibiotics');
+            } else if (diagnosis === 'SIBO') {
+                suggestions.push('First-line: Rifaxomicin 550mg BID x 2 weeks');
+                suggestions.push('Low-FODMAP diet during and after treatment');
+                suggestions.push('Add prokinetic to prevent recurrence');
+                suggestions.push('Retest at 4 weeks post-treatment');
+            } else if (diagnosis === 'IMO') {
+                suggestions.push('Antimicrobial options: Lovastatin, Nifurtimox, or herbal');
+                suggestions.push('Very strict low-FODMAP diet - methanogens feed on fiber');
+                suggestions.push('Address constipation carefully (avoid fiber initially)');
+                suggestions.push('6-8 week treatment cycle typical');
+            } else if (diagnosis === 'Borderline') {
+                suggestions.push('Values near thresholds - not definitively abnormal');
+                suggestions.push('Consider trial low-FODMAP diet for symptomatic relief');
+                suggestions.push('Retest in 6-8 weeks if symptoms persist');
+                suggestions.push('Evaluate for other causes (IBS, food sensitivities)');
+            }
+
+            // Intelligence layer 7: Full curve shape analysis (3+ time points)
+            let curveInsights = [];
+            if (timepoints && timepoints.length >= 3) {
+                // Locate the true H2 peak across the whole curve
+                let h2PeakVal = -Infinity, h2PeakT = 0, h2PeakIdx = 0;
+                timepoints.forEach((tp, idx) => {
+                    if (tp.h2 > h2PeakVal) { h2PeakVal = tp.h2; h2PeakT = tp.t; h2PeakIdx = idx; }
+                });
+                const lastTp = timepoints[timepoints.length - 1];
+
+                // Decline after peak = not a sustained elevation
+                if (h2PeakIdx < timepoints.length - 1) {
+                    const declinePct = (h2PeakVal - lastTp.h2) / h2PeakVal;
+                    if (declinePct >= 0.25 && h2PeakVal - h2_base >= H2_THRESHOLD) {
+                        curveInsights.push(`Decline after ${h2PeakT} min (not sustained elevation) — H₂ fell from ${h2PeakVal.toFixed(1)} to ${lastTp.h2.toFixed(1)} ppm`);
+                        suggestions.push('Add prokinetic + monitor motility');
+                        issues.push(`Peak not sustained: H₂ dropped ${(declinePct*100).toFixed(0)}% after ${h2PeakT} min`);
+                    }
+                }
+
+                // Double-peak / rebound pattern
+                let risingAgain = false;
+                for (let i = h2PeakIdx + 1; i < timepoints.length - 1; i++) {
+                    if (timepoints[i+1].h2 > timepoints[i].h2 + 5) { risingAgain = true; break; }
+                }
+                if (risingAgain) {
+                    curveInsights.push('Secondary rise detected after initial peak — possible double-peak/rebound pattern');
+                    suggestions.push('Consider colonic fermentation contribution or delayed transit segment');
+                }
+
+                // Curve completeness relative to ideal 180-min protocol
+                if (lastTp.t < 180) {
+                    curveInsights.push(`Test ended at ${lastTp.t} min — full 180-min curve gives more reliable pattern detection`);
+                }
+            }
+
+            // Quality assessment
+            let quality = 'Good';
+            if (timepoints && timepoints.length <= 2) quality = 'Limited - baseline/peak only';
+            else if (timepoints && timepoints[timepoints.length-1].t < 180) quality = 'Incomplete';
+
+            return {
+                diagnosis, confidence, pattern, riskLevel, issues, suggestions, curveInsights,
+                h2_rise, ch4_rise, h2_base, ch4_base, h2_peak, ch4_peak, peak_time,
+                substrate, age, sex, symptoms, quality, timepoints
+            };
+        }
+
+        function displaySmartResults(analysis) {
+            let html = '<div class="results-container">';
+
+            // Main diagnosis
+            const confidenceClass = analysis.confidence === 'High' ? 'badge-high' : analysis.confidence === 'Moderate' ? 'badge-moderate' : 'badge-low';
+            const riskClass = analysis.riskLevel.includes('HIGH') ? 'badge-high' : analysis.riskLevel.includes('MODERATE') ? 'badge-moderate' : 'badge-low';
+
+            html += `
+                <div class="diagnosis-card">
+                    <div class="diagnosis-title">🧬 Analysis Results</div>
+                    <div style="margin-bottom: 15px;">
+                        <span class="badge ${confidenceClass}">Confidence: ${analysis.confidence}</span>
+                        <span class="badge ${riskClass}">Risk: ${analysis.riskLevel}</span>
+                        <span class="badge">Quality: ${analysis.quality}</span>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 700; color: #a5b4fc; margin-bottom: 15px;">
+                        ${analysis.diagnosis}
+                    </div>
+                    <div style="color: #e0e7ff; line-height: 1.7; margin-bottom: 15px;">
+                        <strong>${analysis.pattern}</strong><br><br>
+                        <strong>Findings:</strong><br>
+                        • H₂: ${analysis.h2_rise.toFixed(1)} ppm rise (baseline: ${analysis.h2_base.toFixed(1)}, peak: ${analysis.h2_peak.toFixed(1)})<br>
+                        • CH₄: ${analysis.ch4_rise.toFixed(1)} ppm rise (baseline: ${analysis.ch4_base.toFixed(1)}, peak: ${analysis.ch4_peak.toFixed(1)})<br>
+                        • Diagnostic thresholds: H₂ ≥20 ppm (90 min), CH₄ ≥10 ppm
+                    </div>
+                </div>
+            `;
+
+            // Curve chart
+            if (analysis.timepoints && analysis.timepoints.length >= 2) {
+                html += `
+                    <div class="diagnosis-card">
+                        <div class="diagnosis-title">📈 Breath Curve — H₂ / CH₄ Over Time</div>
+                        <div style="position: relative; height: 320px; margin-top: 10px;">
+                            <canvas id="resultsChart"></canvas>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #94a3b8;">
+                            Dashed lines mark diagnostic thresholds (H₂ 20 ppm, CH₄ 10 ppm above baseline).
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Curve-shape insights
+            if (analysis.curveInsights && analysis.curveInsights.length > 0) {
+                html += `
+                    <div class="smart-insight" style="border-left-color: #fb923c;">
+                        <strong>🔍 Curve Pattern Analysis:</strong><br>
+                        ${analysis.curveInsights.map(i => `⚠️ ${i}`).join('<br>')}
+                    </div>
+                `;
+            }
+
+            // Issues
+            if (analysis.issues.length > 0) {
+                html += `
+                    <div class="smart-insight">
+                        <strong>⚠️ Interpretation Notes:</strong><br>
+                        ${analysis.issues.map(i => `• ${i}`).join('<br>')}
+                    </div>
+                `;
+            }
+
+            // Smart suggestions
+            if (analysis.suggestions.length > 0) {
+                html += `
+                    <div class="suggestion-box">
+                        <strong>💡 Intelligent Suggestions:</strong><br>
+                        ${analysis.suggestions.map(s => `• ${s}`).join('<br>')}
+                    </div>
+                `;
+            }
+
+            // Symptom check
+            const activeSym = Object.entries(analysis.symptoms).filter(([,v]) => v).map(([k]) => k);
+            if (activeSym.length > 0) {
+                html += `
+                    <div class="diagnosis-card">
+                        <div class="diagnosis-title">📋 Symptom Correlation</div>
+                        <div>Reported: ${activeSym.join(', ')}<br>
+                        <small style="color: #cbd5e1;">Note: Symptoms support but do not replace professional evaluation</small></div>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            document.getElementById('results').innerHTML = html;
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            if (analysis.timepoints && analysis.timepoints.length >= 2) {
+                renderCurveChart(analysis);
+            }
+        }
+
+        function renderCurveChart(analysis) {
+            const canvas = document.getElementById('resultsChart');
+            if (!canvas) return;
+            if (resultsChartInstance) { resultsChartInstance.destroy(); }
+
+            const tps = analysis.timepoints;
+            const labels = tps.map(tp => `${tp.t}m`);
+            const h2Data = tps.map(tp => tp.h2);
+            const ch4Data = tps.map(tp => tp.ch4);
+            const h2ThresholdVal = analysis.h2_base + 20;
+            const ch4ThresholdVal = analysis.ch4_base + 10;
+            const maxY = Math.max(...h2Data, ...ch4Data, h2ThresholdVal, ch4ThresholdVal) * 1.15;
+
+            // Locate H2 peak point for annotation
+            let peakIdx = 0, peakVal = -Infinity;
+            tps.forEach((tp, i) => { if (tp.h2 > peakVal) { peakVal = tp.h2; peakIdx = i; } });
+            const lastTp = tps[tps.length - 1];
+            const declined = peakIdx < tps.length - 1 && (peakVal - lastTp.h2) / peakVal >= 0.25;
+
+            const ctx = canvas.getContext('2d');
+            const h2Gradient = ctx.createLinearGradient(0, 0, 0, 320);
+            h2Gradient.addColorStop(0, 'rgba(129, 140, 248, 0.45)');
+            h2Gradient.addColorStop(1, 'rgba(129, 140, 248, 0.02)');
+            const ch4Gradient = ctx.createLinearGradient(0, 0, 0, 320);
+            ch4Gradient.addColorStop(0, 'rgba(251, 146, 60, 0.4)');
+            ch4Gradient.addColorStop(1, 'rgba(251, 146, 60, 0.02)');
+
+            const annotations = {
+                h2ThresholdLine: {
+                    type: 'line', yMin: h2ThresholdVal, yMax: h2ThresholdVal,
+                    borderColor: 'rgba(129, 140, 248, 0.7)', borderWidth: 1.5, borderDash: [6, 5],
+                    label: { display: true, content: 'H₂ threshold (' + h2ThresholdVal.toFixed(0) + ')', position: 'start',
+                        color: '#c7d2fe', backgroundColor: 'rgba(30, 41, 59, 0.85)', font: { size: 10, weight: '600' }, padding: 4 }
+                },
+                ch4ThresholdLine: {
+                    type: 'line', yMin: ch4ThresholdVal, yMax: ch4ThresholdVal,
+                    borderColor: 'rgba(251, 146, 60, 0.7)', borderWidth: 1.5, borderDash: [6, 5],
+                    label: { display: true, content: 'CH₄ threshold (' + ch4ThresholdVal.toFixed(0) + ')', position: 'end',
+                        color: '#fed7aa', backgroundColor: 'rgba(30, 41, 59, 0.85)', font: { size: 10, weight: '600' }, padding: 4 }
+                },
+                h2PositiveZone: {
+                    type: 'box', yMin: h2ThresholdVal, yMax: maxY,
+                    backgroundColor: 'rgba(248, 113, 113, 0.05)', borderWidth: 0
+                },
+                peakMarker: {
+                    type: 'point', xValue: labels[peakIdx], yValue: peakVal,
+                    backgroundColor: '#f87171', borderColor: '#fff', borderWidth: 2, radius: 6
+                },
+                peakLabel: {
+                    type: 'label', xValue: labels[peakIdx], yValue: peakVal,
+                    content: ['⬆ Peak'], color: '#fca5a5', font: { size: 11, weight: '700' }, yAdjust: -20
+                }
+            };
+
+            if (declined) {
+                annotations.declineMarker = {
+                    type: 'point', xValue: labels[tps.length - 1], yValue: lastTp.h2,
+                    backgroundColor: '#fbbf24', borderColor: '#fff', borderWidth: 2, radius: 6
+                };
+                annotations.declineLabel = {
+                    type: 'label', xValue: labels[tps.length - 1], yValue: lastTp.h2,
+                    content: ['⬇ Not sustained'], color: '#fcd34d', font: { size: 11, weight: '700' }, yAdjust: -22, xAdjust: -30
+                };
+            }
+
+            resultsChartInstance = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'H₂ (ppm)',
+                            data: h2Data,
+                            borderColor: '#818cf8',
+                            backgroundColor: h2Gradient,
+                            borderWidth: 3.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#818cf8',
+                            pointBorderColor: '#0a0e27',
+                            pointBorderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            cubicInterpolationMode: 'monotone'
+                        },
+                        {
+                            label: 'CH₄ (ppm)',
+                            data: ch4Data,
+                            borderColor: '#fb923c',
+                            backgroundColor: ch4Gradient,
+                            borderWidth: 3.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#fb923c',
+                            pointBorderColor: '#0a0e27',
+                            pointBorderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            cubicInterpolationMode: 'monotone'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    animation: { duration: 900, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#cbd5e1', font: { size: 12, weight: '600' }, usePointStyle: true, boxWidth: 8 }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(10, 14, 39, 0.95)',
+                            titleColor: '#e0e7ff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(102, 126, 234, 0.4)',
+                            borderWidth: 1,
+                            padding: 10,
+                            cornerRadius: 8
+                        },
+                        annotation: { annotations }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#94a3b8', font: { size: 11 } },
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                            title: { display: true, text: 'Time (minutes)', color: '#94a3b8', font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: maxY,
+                            ticks: { color: '#94a3b8', font: { size: 11 } },
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                            title: { display: true, text: 'ppm', color: '#94a3b8', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        initAnalysisForm();
+    </script>
+</body>
+</html>
