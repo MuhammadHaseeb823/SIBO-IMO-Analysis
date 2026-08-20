@@ -524,6 +524,126 @@
             }
         }
     </style>
+```html
+<script>
+(function() {
+  const APP_NAME = "SIBO-IMO Analysis"
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/xdenbzbo";
+  const STORAGE_KEY = "haseeb_access_unlocked_v1";
+  const CODE_HASH = "088fe001cf8c6e3d59db2fccab6db8b8606adabdef3c0d95e8c4fb9c05f13689";
+  const CONTACT_EMAIL = "hasi1296@yahoo.com";
+
+  if (localStorage.getItem(STORAGE_KEY) === "true") return;
+
+  async function sha256(text) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "access-gate-overlay";
+  overlay.innerHTML = `
+    <style>
+      #access-gate-overlay { position:fixed; inset:0; background:#0f172a; color:#e2e8f0; z-index:999999;
+        display:flex; align-items:center; justify-content:center; font-family:system-ui,sans-serif; padding:20px; }
+      .ag-card { background:#1e293b; border-radius:12px; padding:28px; max-width:420px; width:100%; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+      .ag-card h2 { margin:0 0 6px; font-size:20px; }
+      .ag-card p { font-size:14px; color:#94a3b8; line-height:1.5; }
+      .ag-tabs { display:flex; gap:8px; margin:16px 0; }
+      .ag-tab { flex:1; padding:8px; text-align:center; border-radius:8px; cursor:pointer; background:#334155; font-size:13px; }
+      .ag-tab.active { background:#2563eb; color:#fff; }
+      .ag-panel { display:none; }
+      .ag-panel.active { display:block; }
+      .ag-card input, .ag-card textarea { width:100%; box-sizing:border-box; padding:9px; margin:6px 0; border-radius:6px;
+        border:1px solid #475569; background:#0f172a; color:#e2e8f0; font-size:13px; }
+      .ag-card button { width:100%; padding:10px; margin-top:8px; border:none; border-radius:8px; background:#2563eb;
+        color:#fff; font-weight:600; cursor:pointer; font-size:14px; }
+      .ag-card button:hover { background:#1d4ed8; }
+      .ag-msg { font-size:13px; margin-top:10px; }
+      .ag-contact { margin-top:16px; border-top:1px solid #334155; padding-top:12px; font-size:13px; }
+      .ag-contact a { color:#60a5fa; text-decoration:none; }
+    </style>
+    <div class="ag-card">
+      <h2>🔒 Access Restricted</h2>
+      <p><b>${APP_NAME}</b> is a private tool. Please request access or enter your access code below.</p>
+      <div class="ag-tabs">
+        <div class="ag-tab active" data-tab="request">Request Access</div>
+        <div class="ag-tab" data-tab="code">Enter Code</div>
+      </div>
+      <div class="ag-panel active" data-panel="request">
+        <input type="text" id="ag-name" placeholder="Your name" />
+        <input type="email" id="ag-email" placeholder="Your email" />
+        <textarea id="ag-reason" rows="2" placeholder="Why do you need access? (optional)"></textarea>
+        <button id="ag-send">Send Request</button>
+        <div class="ag-msg" id="ag-send-msg"></div>
+      </div>
+      <div class="ag-panel" data-panel="code">
+        <input type="text" id="ag-code" placeholder="Access code" />
+        <button id="ag-unlock">Unlock</button>
+        <div class="ag-msg" id="ag-code-msg"></div>
+      </div>
+      <div class="ag-contact">
+        Or contact directly:<br>
+        📧 <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a><br>
+        💬 <a href="https://wa.me/447895825136" target="_blank">WhatsApp: 07895825136</a>
+      </div>
+    </div>
+  `;
+  document.documentElement.appendChild(overlay);
+  document.body.style.overflow = "hidden";
+
+  overlay.querySelectorAll(".ag-tab").forEach(tab => {
+    tab.onclick = () => {
+      overlay.querySelectorAll(".ag-tab").forEach(t => t.classList.remove("active"));
+      overlay.querySelectorAll(".ag-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      overlay.querySelector(`.ag-panel[data-panel="${tab.dataset.tab}"]`).classList.add("active");
+    };
+  });
+
+  overlay.querySelector("#ag-send").onclick = async () => {
+    const name = overlay.querySelector("#ag-name").value.trim();
+    const email = overlay.querySelector("#ag-email").value.trim();
+    const reason = overlay.querySelector("#ag-reason").value.trim();
+    const msg = overlay.querySelector("#ag-send-msg");
+    if (!name || !email) { msg.textContent = "Please fill in your name and email."; msg.style.color = "#f87171"; return; }
+    msg.textContent = "Sending..."; msg.style.color = "#94a3b8";
+    try {
+      const res = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ name, email, reason, app: APP_NAME })
+      });
+      if (res.ok) {
+        msg.textContent = "Request sent! You'll get an access code by email or WhatsApp once approved.";
+        msg.style.color = "#4ade80";
+      } else {
+        msg.textContent = "Something went wrong — please email or WhatsApp directly instead.";
+        msg.style.color = "#f87171";
+      }
+    } catch (e) {
+      msg.textContent = "Network error — please email or WhatsApp directly instead.";
+      msg.style.color = "#f87171";
+    }
+  };
+
+  overlay.querySelector("#ag-unlock").onclick = async () => {
+    const code = overlay.querySelector("#ag-code").value.trim();
+    const msg = overlay.querySelector("#ag-code-msg");
+    if (!code) return;
+    const hash = await sha256(code);
+    if (hash === CODE_HASH) {
+      localStorage.setItem(STORAGE_KEY, "true");
+      overlay.remove();
+      document.body.style.overflow = "";
+    } else {
+      msg.textContent = "Incorrect code.";
+      msg.style.color = "#f87171";
+    }
+  };
+})();
+</script>
+```
 </head>
 <body>
     <div class="main-content">
